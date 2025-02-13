@@ -22,8 +22,8 @@ public class OpenRouterService {
         "meta-llama/llama-3.3-70b-instruct:free"
     );
 
-    public OpenRouterService(@Value("${openrouter.base-url}") String baseUrl,
-                             @Value("${openrouter.api-key}") String apiKey) {
+    public OpenRouterService(@Value("${openrouter.base.url}") String baseUrl,
+                             @Value("${openrouter.api.key}") String apiKey) {
         this.webClient = WebClient.builder()
             .baseUrl(baseUrl)
             .defaultHeader("Authorization", "Bearer " + apiKey)
