@@ -20,9 +20,9 @@ public class OpenRouterController {
         this.openRouterService = openRouterService;
     }
 
-    @PostMapping("/ask-multiple")
-    public Mono<ResponseEntity<Map<String, String>>> askMultipleModels(@RequestBody String question) {
-        return openRouterService.getResponsesFromModels(question)
+    @PostMapping("/ask-and-rank")
+    public Mono<ResponseEntity<Map<String, Object>>> askAndRankModels(@RequestBody String question) {
+        return openRouterService.getResponsesAndRankings(question)
                 .map(ResponseEntity::ok);
     }
 }
