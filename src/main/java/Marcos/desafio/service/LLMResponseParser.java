@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -63,7 +65,7 @@ public class LLMResponseParser {
 
         rawEvaluations.forEach((model, responseJson) -> {
             try {
-                // Extrai o JSON da string retornada pelo modelo
+                
                 String jsonText = extractJsonFromResponse(parseResponse(model, responseJson));
 
                 JsonNode rootNode = objectMapper.readTree(jsonText);
@@ -72,10 +74,11 @@ public class LLMResponseParser {
                     evaluations.put(model, objectMapper.convertValue(rootNode.get("evaluations"), Map.class));
                 }
                 if (rootNode.has("ranking")) {
-                    rankings.put(model, objectMapper.convertValue(rootNode.get("ranking"), Object.class));
+                    rankings.put(model, processRanking(rootNode.get("ranking"), model));
                 }
             } catch (Exception e) {
                 System.err.println("Erro ao processar avaliação do modelo " + model + ": " + e.getMessage());
+                System.err.println("Resposta bruta do modelo " + model + ": " + responseJson);
             }
         });
 
@@ -86,15 +89,51 @@ public class LLMResponseParser {
         return finalEvaluations;
     }
 
+    private List<Map<String, Object>> processRanking(JsonNode rankingNode, String model) {
+        List<Map<String, Object>> fixedRanking = new ArrayList<>();
+
+        try {
+            if (rankingNode.isArray()) {
+                return objectMapper.convertValue(rankingNode, List.class);
+            } else {
+                
+                rankingNode.fields().forEachRemaining(entry -> {
+                    if (entry.getValue().isObject()) {
+                        try {
+                            Map<String, Object> rankingEntry = objectMapper.convertValue(entry.getValue(), Map.class);
+                            fixedRanking.add(rankingEntry);
+                        } catch (Exception e) {
+                            System.err.println("Erro ao corrigir ranking do modelo " + model + ": " + e.getMessage());
+                        }
+                    }
+                });
+            }
+        } catch (Exception e) {
+            System.err.println("Erro ao processar ranking do modelo " + model + ": " + e.getMessage());
+        }
+
+        if (fixedRanking.isEmpty()) {
+            System.err.println("Ranking do modelo " + model + " está em um formato inválido e não pôde ser corrigido.");
+        }
+
+        return fixedRanking;
+    }
+
     private String extractJsonFromResponse(String response) {
+
+        if (response.contains("\"error\"")) {
+            return "{\"error\": \"A API retornou um erro na resposta\"}";
+        }
+    
         // Remove delimitadores de código (` ```json `)
         Pattern pattern = Pattern.compile("```json\\s*(\\{.*?\\})\\s*```", Pattern.DOTALL);
         Matcher matcher = pattern.matcher(response);
         if (matcher.find()) {
-            return matcher.group(1);
+            response = matcher.group(1);
         }
-
-        // Se não encontrar os delimitadores, tenta processar a resposta diretamente
+    
+        response = response.replaceAll(",\\s*}", "}").replaceAll(",\\s*]", "]");
+    
         return response.trim();
     }
 }
