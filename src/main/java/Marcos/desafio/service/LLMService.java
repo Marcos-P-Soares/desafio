@@ -35,19 +35,13 @@ public class LLMService {
                         return Mono.error(new RuntimeException("Nenhuma resposta válida foi obtida dos modelos."));
                     }
 
-                    // Extrai respostas limpas
                     Map<String, String> extractedResponses = responseParser.extractResponses(responses);
 
-                    // Monta prompt para avaliação
                     String evaluationPrompt = generateEvaluationPrompt(question, extractedResponses);
 
-                    // Envia para cada modelo avaliar
                     return getEvaluationsFromModels(evaluationPrompt, extractedResponses)
                             .map(evaluations -> {
-                                // Extrai avaliações e rankings corretamente
                                 Map<String, Object> processedEvaluations = responseParser.extractEvaluations(evaluations);
-
-                                // Retorno final com respostas, avaliações e rankings
                                 Map<String, Object> finalResult = new ConcurrentHashMap<>();
                                 finalResult.put("responses", extractedResponses);
                                 finalResult.put("evaluations", processedEvaluations);
@@ -61,19 +55,23 @@ public class LLMService {
 
         return Flux.mergeDelayError(15,
                 openRouterService.query(question).timeout(Duration.ofSeconds(15))
-                        .onErrorResume(e -> Mono.just("Erro ao obter resposta do OpenRouter: " + e.getMessage()))
+                        .onErrorResume(e -> Mono.just("{\"error\":\"Erro ao obter resposta do OpenRouter: " + e.getMessage() + "\"}"))
                         .doOnNext(resp -> results.put("OpenRouter", resp)),
+
                 geminiService.query(question).timeout(Duration.ofSeconds(15))
-                        .onErrorResume(e -> Mono.just("Erro ao obter resposta do Gemini: " + e.getMessage()))
+                        .onErrorResume(e -> Mono.just("{\"error\":\"Erro ao obter resposta do Gemini: " + e.getMessage() + "\"}"))
                         .doOnNext(resp -> results.put("Gemini", resp)),
+
                 mistralService.query(question).timeout(Duration.ofSeconds(15))
-                        .onErrorResume(e -> Mono.just("Erro ao obter resposta do Mistral: " + e.getMessage()))
+                        .onErrorResume(e -> Mono.just("{\"error\":\"Erro ao obter resposta do Mistral: " + e.getMessage() + "\"}"))
                         .doOnNext(resp -> results.put("Mistral", resp)),
+
                 cohereService.query(question).timeout(Duration.ofSeconds(15))
-                        .onErrorResume(e -> Mono.just("Erro ao obter resposta do Cohere: " + e.getMessage()))
+                        .onErrorResume(e -> Mono.just("{\"error\":\"Erro ao obter resposta do Cohere: " + e.getMessage() + "\"}"))
                         .doOnNext(resp -> results.put("Cohere", resp)),
+
                 ai21Service.query(question).timeout(Duration.ofSeconds(15))
-                        .onErrorResume(e -> Mono.just("Erro ao obter resposta do AI21: " + e.getMessage()))
+                        .onErrorResume(e -> Mono.just("{\"error\":\"Erro ao obter resposta do AI21: " + e.getMessage() + "\"}"))
                         .doOnNext(resp -> results.put("AI21", resp))
         ).then(Mono.just(results));
     }
