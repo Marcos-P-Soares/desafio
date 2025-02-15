@@ -75,24 +75,24 @@ public class LLMService {
         ).then(Mono.just(results));
     }
 
-    private Mono<Map<String, Object>> getEvaluationsFromModels(String evaluationPrompt, Map<String, String> responses) {
-        Map<String, Object> results = new ConcurrentHashMap<>();
-
+    private Mono<Map<String, String>> getEvaluationsFromModels(String evaluationPrompt, Map<String, String> responses) {
+        Map<String, String> results = new ConcurrentHashMap<>();
+    
         return Flux.mergeDelayError(15,
                 openRouterService.query(evaluationPrompt).timeout(Duration.ofSeconds(15))
-                        .onErrorResume(e -> Mono.just("Erro ao obter avaliação do OpenRouter: " + e.getMessage()))
+                        .onErrorResume(e -> Mono.just("{\"error\":\"Erro ao obter avaliação do OpenRouter: " + e.getMessage() + "\"}"))
                         .doOnNext(resp -> results.put("OpenRouter", resp)),
                 geminiService.query(evaluationPrompt).timeout(Duration.ofSeconds(15))
-                        .onErrorResume(e -> Mono.just("Erro ao obter avaliação do Gemini: " + e.getMessage()))
+                        .onErrorResume(e -> Mono.just("{\"error\":\"Erro ao obter avaliação do Gemini: " + e.getMessage() + "\"}"))
                         .doOnNext(resp -> results.put("Gemini", resp)),
                 mistralService.query(evaluationPrompt).timeout(Duration.ofSeconds(15))
-                        .onErrorResume(e -> Mono.just("Erro ao obter avaliação do Mistral: " + e.getMessage()))
+                        .onErrorResume(e -> Mono.just("{\"error\":\"Erro ao obter avaliação do Mistral: " + e.getMessage() + "\"}"))
                         .doOnNext(resp -> results.put("Mistral", resp)),
                 cohereService.query(evaluationPrompt).timeout(Duration.ofSeconds(15))
-                        .onErrorResume(e -> Mono.just("Erro ao obter avaliação do Cohere: " + e.getMessage()))
+                        .onErrorResume(e -> Mono.just("{\"error\":\"Erro ao obter avaliação do Cohere: " + e.getMessage() + "\"}"))
                         .doOnNext(resp -> results.put("Cohere", resp)),
                 ai21Service.query(evaluationPrompt).timeout(Duration.ofSeconds(15))
-                        .onErrorResume(e -> Mono.just("Erro ao obter avaliação do AI21: " + e.getMessage()))
+                        .onErrorResume(e -> Mono.just("{\"error\":\"Erro ao obter avaliação do AI21: " + e.getMessage() + "\"}"))
                         .doOnNext(resp -> results.put("AI21", resp))
         ).then(Mono.just(results));
     }
