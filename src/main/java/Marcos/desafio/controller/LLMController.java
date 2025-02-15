@@ -19,9 +19,9 @@ public class LLMController {
     }
 
     @PostMapping("/query")
-    public Mono<ResponseEntity<Map<String, String>>> queryModels(@Valid @RequestBody QueryRequestDTO request) {
-        return llmService.queryAll(request.getQuestion())
-                .map(responses -> ResponseEntity.ok(responses))
+    public Mono<ResponseEntity<Map<String, Object>>> queryModels(@Valid @RequestBody QueryRequestDTO request) {
+        return llmService.queryAndEvaluate(request.getQuestion())
+                .map(responses -> ResponseEntity.ok().body(responses))
                 .onErrorResume(ex -> Mono.just(ResponseEntity.internalServerError().body(Map.of("error", ex.getMessage()))));
     }
 }
