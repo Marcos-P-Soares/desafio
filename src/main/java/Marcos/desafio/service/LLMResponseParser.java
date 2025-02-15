@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class LLMResponseParser {
@@ -30,6 +32,7 @@ public class LLMResponseParser {
 
     private String parseResponse(String model, String responseJson) throws Exception {
         JsonNode rootNode = objectMapper.readTree(responseJson);
+
         switch (model) {
             case "Mistral":
             case "AI21":
@@ -52,5 +55,46 @@ public class LLMResponseParser {
                 throw new Exception("Modelo desconhecido: " + model);
         }
         throw new Exception("Formato de resposta inesperado para " + model);
+    }
+
+    public Map<String, Object> extractEvaluations(Map<String, String> rawEvaluations) {
+        Map<String, Object> evaluations = new HashMap<>();
+        Map<String, Object> rankings = new HashMap<>();
+
+        rawEvaluations.forEach((model, responseJson) -> {
+            try {
+                // Extrai o JSON da string retornada pelo modelo
+                String jsonText = extractJsonFromResponse(parseResponse(model, responseJson));
+
+                JsonNode rootNode = objectMapper.readTree(jsonText);
+
+                if (rootNode.has("evaluations")) {
+                    evaluations.put(model, objectMapper.convertValue(rootNode.get("evaluations"), Map.class));
+                }
+                if (rootNode.has("ranking")) {
+                    rankings.put(model, objectMapper.convertValue(rootNode.get("ranking"), Object.class));
+                }
+            } catch (Exception e) {
+                System.err.println("Erro ao processar avaliação do modelo " + model + ": " + e.getMessage());
+            }
+        });
+
+        Map<String, Object> finalEvaluations = new HashMap<>();
+        finalEvaluations.put("evaluations", evaluations);
+        finalEvaluations.put("rankings", rankings);
+
+        return finalEvaluations;
+    }
+
+    private String extractJsonFromResponse(String response) {
+        // Remove delimitadores de código (` ```json `)
+        Pattern pattern = Pattern.compile("```json\\s*(\\{.*?\\})\\s*```", Pattern.DOTALL);
+        Matcher matcher = pattern.matcher(response);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+
+        // Se não encontrar os delimitadores, tenta processar a resposta diretamente
+        return response.trim();
     }
 }

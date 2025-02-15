@@ -44,10 +44,13 @@ public class LLMService {
                     // Envia para cada modelo avaliar
                     return getEvaluationsFromModels(evaluationPrompt, extractedResponses)
                             .map(evaluations -> {
-                                // Retorno final com ranking, respostas originais e avaliações
+                                // Extrai avaliações e rankings corretamente
+                                Map<String, Object> processedEvaluations = responseParser.extractEvaluations(evaluations);
+
+                                // Retorno final com respostas, avaliações e rankings
                                 Map<String, Object> finalResult = new ConcurrentHashMap<>();
                                 finalResult.put("responses", extractedResponses);
-                                finalResult.put("evaluations", evaluations);
+                                finalResult.put("evaluations", processedEvaluations);
                                 return finalResult;
                             });
                 });
