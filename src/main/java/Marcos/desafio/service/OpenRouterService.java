@@ -26,7 +26,7 @@ public class OpenRouterService {
                 .uri("/chat/completions")
                 .header("Authorization", "Bearer " + apiKey)
                 .bodyValue(Map.of(
-                        "model", "meta-llama/llama-3.3-70b-instruct:free",
+                        "model", "google/gemini-2.0-flash-exp:free",
                         "messages", new Object[]{Map.of("role", "user", "content", question)}
                 ))
                 .retrieve()
