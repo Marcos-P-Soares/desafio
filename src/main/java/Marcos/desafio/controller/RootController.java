@@ -15,6 +15,6 @@ public class RootController {
     @GetMapping
     public String welcomeMessage() {
         logger.info("Acesso à raiz do backend");
-        return "Bem-vindo ao backend da aplicação!";
+        return "Bem-vindo ao comparador de LLM's!";
     }
 }
