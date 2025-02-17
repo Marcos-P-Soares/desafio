@@ -66,8 +66,20 @@ public class LLMResponseParser {
         rawEvaluations.forEach((model, responseJson) -> {
             try {
                 
-                String jsonText = extractJsonFromResponse(parseResponse(model, responseJson));
+                String rawExtractedResponse = parseResponse(model, responseJson);
 
+                
+
+                // Se for AI21, corrigir o formato do ranking antes de passar adiante
+                if ("AI21".equals(model)) {
+                    // Log para depuração: Mostrar a resposta antes da extração JSON
+                    System.out.println("Resposta bruta extraída do modelo " + model + ": " + rawExtractedResponse);
+                    rawExtractedResponse = fixAI21RankingFormat(rawExtractedResponse);
+                    System.out.println("Resposta bruta extraída do modelo " + model + ": " + rawExtractedResponse);
+                }
+
+                // Agora faz a extração do JSON correto
+                String jsonText = extractJsonFromResponse(rawExtractedResponse);
                 JsonNode rootNode = objectMapper.readTree(jsonText);
 
                 if (rootNode.has("evaluations")) {
@@ -133,7 +145,37 @@ public class LLMResponseParser {
         }
     
         response = response.replaceAll(",\\s*}", "}").replaceAll(",\\s*]", "]");
+        // **Correção específica para o AI21**
+
     
         return response.trim();
     }
+
+    private String fixAI21RankingFormat(String response) {
+        // Verifica se o ranking do AI21 está no formato incorreto
+        if (!response.contains("\"ranking\": [") || !response.contains("\"AI21\": {")) {
+            return response; // Se não contém o problema, retorna sem modificar
+        }
+    
+        System.out.println("Corrigindo ranking do AI21...");
+    
+        // Expressão regular para encontrar a seção de ranking e capturar os elementos incorretos
+        Pattern pattern = Pattern.compile("\"ranking\": \\[(.*?)\\]", Pattern.DOTALL);
+        Matcher matcher = pattern.matcher(response);
+    
+        if (matcher.find()) {
+            String rankingContent = matcher.group(1); // Captura apenas o conteúdo dentro de "ranking": [...]
+    
+            // Corrige o problema removendo as chaves nomeadas e deixando apenas os objetos
+            String fixedRanking = rankingContent.replaceAll("\"[A-Za-z0-9]+\": \\{", "{");
+    
+            // Monta a resposta corrigida substituindo apenas a parte do ranking
+            response = response.replace(rankingContent, fixedRanking);
+    
+            System.out.println("Ranking do AI21 corrigido!");
+        }
+    
+        return response;
+    }
+    
 }
