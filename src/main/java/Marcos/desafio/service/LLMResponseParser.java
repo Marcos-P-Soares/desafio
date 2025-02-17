@@ -68,17 +68,11 @@ public class LLMResponseParser {
                 
                 String rawExtractedResponse = parseResponse(model, responseJson);
 
-                
-
                 // Se for AI21, corrigir o formato do ranking antes de passar adiante
                 if ("AI21".equals(model)) {
-                    // Log para depuração: Mostrar a resposta antes da extração JSON
-                    System.out.println("Resposta bruta extraída do modelo " + model + ": " + rawExtractedResponse);
                     rawExtractedResponse = fixAI21RankingFormat(rawExtractedResponse);
-                    System.out.println("Resposta bruta extraída do modelo " + model + ": " + rawExtractedResponse);
                 }
 
-                // Agora faz a extração do JSON correto
                 String jsonText = extractJsonFromResponse(rawExtractedResponse);
                 JsonNode rootNode = objectMapper.readTree(jsonText);
 
